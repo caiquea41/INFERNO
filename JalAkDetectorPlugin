@@ -1,0 +1,75 @@
+package net.runelite.client.plugins.jalakdetector;
+
+import com.google.inject.Provides;
+import net.runelite.api.Client;
+import net.runelite.api.NPC;
+import net.runelite.api.NpcID;
+import net.runelite.api.events.GameTick;
+import net.runelite.api.vars.InterfaceTab;
+import net.runelite.api.widgets.WidgetInfo;
+import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.game.ItemManager;
+import net.runelite.client.input.KeyManager;
+import net.runelite.client.plugins.Plugin;
+import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.util.Text;
+import net.runelite.http.api.item.ItemPrice;
+import javax.inject.Inject;
+
+@PluginDescriptor(
+    name = "Jal-Ak Detector",
+    description = "Detects Jal-Ak NPC and switches prayers accordingly",
+    tags = {"combat", "prayer", "inferno"}
+)
+public class JalAkDetectorPlugin extends Plugin {
+    
+    @Inject
+    private Client client;
+
+    @Override
+    protected void startUp() throws Exception {
+        // Initialization code here
+    }
+
+    @Override
+    protected void shutDown() throws Exception {
+        // Cleanup code here
+    }
+
+    @Subscribe
+    public void onGameTick(GameTick event) {
+        for (NPC npc : client.getNpcs()) {
+            if (npc.getId() == NpcID.JAL_AK) {
+                handleJalAk(npc);
+            }
+        }
+    }
+
+    private void handleJalAk(NPC jalAk) {
+        int ticksUntilNextAttack = 3; // substitua pelo cálculo real dos ticks
+        int currentTick = client.getTickCount();
+
+        if (ticksUntilNextAttack == 3) {
+            boolean usingProtectFromMagic = client.getVarbitValue(Varbits.PRAYER_PROTECT_FROM_MAGIC) == 1;
+            boolean usingProtectFromMissiles = client.getVarbitValue(Varbits.PRAYER_PROTECT_FROM_MISSILES) == 1;
+
+            if (usingProtectFromMagic) {
+                activatePrayer(WidgetInfo.PRAYER_PROTECT_FROM_MISSILES);
+            } else if (usingProtectFromMissiles) {
+                activatePrayer(WidgetInfo.PRAYER_PROTECT_FROM_MAGIC);
+            } else {
+                // Log ou outro tratamento se nenhuma oração está ativa
+            }
+        }
+    }
+
+    private void activatePrayer(WidgetInfo prayer) {
+        client.invokeMenuAction("Activate", "", 1, MenuAction.CC_OP.getId(), prayer.getChildId(), prayer.getWidgetId());
+    }
+
+    @Provides
+    JalAkDetectorConfig provideConfig(ConfigManager configManager) {
+        return configManager.getConfig(JalAkDetectorConfig.class);
+    }
+}
